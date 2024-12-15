@@ -1,10 +1,7 @@
 package com.example.service;
 
 import com.example.aspect.MainAspect;
-import com.example.aspect.annotation.HandlingResult;
-import com.example.aspect.annotation.LogException;
-import com.example.aspect.annotation.LogExecution;
-import com.example.aspect.annotation.LogTracking;
+import com.example.aspect.annotation.*;
 import com.example.domain.Task;
 import com.example.exception.TaskNotFoundException;
 import com.example.mapper.TaskMapper;
@@ -31,7 +28,6 @@ public class TaskService {
     @LogException
     public ResponseTaskDTO getTask(Long taskId) {
         logger.info("Get task by id");
-
         return taskMapper.toDTO(getEntity(taskId));
     }
 
@@ -44,6 +40,7 @@ public class TaskService {
 
     @Transactional
     @HandlingResult
+    @KafkaProducerMessage
     public ResponseTaskDTO createTask(RequestTaskDTO taskDTO) {
         logger.info("Create task");
         Task task = taskMapper.toEntity(taskDTO);
@@ -52,6 +49,7 @@ public class TaskService {
 
     @Transactional
     @HandlingResult
+    @KafkaProducerMessage
     public ResponseTaskDTO updateTask(Long taskId, RequestTaskDTO taskDTO) {
         logger.info("Create task");
         Task targetEntity = getEntity(taskId);
@@ -61,6 +59,7 @@ public class TaskService {
 
     @Transactional
     @LogTracking
+    @KafkaProducerMessage
     public void deleteTask(Long taskId) {
         logger.info("Delete task");
         taskRepository.deleteById(taskId);

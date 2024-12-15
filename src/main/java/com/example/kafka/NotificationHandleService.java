@@ -1,38 +1,33 @@
 package com.example.kafka;
 
 import com.example.domain.TaskEventDTO;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.service.EmailMessageSenderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationHandleService {
-    private final ObjectMapper objectMapper;
+    private final EmailMessageSenderService emailMessageSender;
 
-    private final JavaMailSender javaMailSender;
-    @KafkaListener(topics = "task", groupId = "group_id")
-    @Transactional
-    public void consume(String message) throws JsonProcessingException {
-        TaskEventDTO dto = objectMapper.readValue(message, TaskEventDTO.class);
-        log.info("CONSUMED: {}", dto.toString());
-        emailMessageSender(dto);
-    }
-
-    @Transactional
-    public void emailMessageSender(TaskEventDTO dto) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("sergeilisovoi22@gmail.com");
-        message.setTo("sergeilisovoi22@gmail.com");
-        message.setSubject(dto.getStatus().toString());
-        message.setText(dto.toString());
-        javaMailSender.send(message);
+    @KafkaListener(id = "task",
+            topics = "task",
+            containerFactory = "kafkaListenerContainerFactory")
+    public void listener(@Payload List<TaskEventDTO> messageList,
+                         Acknowledgment ack) {
+        log.debug("Client consumer: Обработка новых сообщений");
+        try {
+            messageList.forEach(emailMessageSender::emailMessageSender);
+        } finally {
+            ack.acknowledge();
+        }
+        log.debug("Client consumer: записи обработаны");
     }
 }
